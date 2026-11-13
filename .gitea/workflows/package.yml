@@ -17,6 +17,27 @@ jobs:
         os: [debian-12, debian-13, fedora, archlinux]
 
     steps:
+      - name: "Diagnostic: Environment & Runner Context"
+        env:
+          CTX_RUNNER: ${{ toJSON(runner) }}
+          CTX_STRATEGY: ${{ toJSON(strategy) }}
+          CTX_MATRIX: ${{ toJSON(matrix) }}
+          CTX_GITEA: ${{ toJSON(gitea) }}
+        run: |
+          echo "=== Host / Container OS ==="
+          cat /etc/os-release 2>/dev/null || true
+          uname -a
+          id
+          pwd
+          df -h . || true
+          echo "=== Runner Context ==="
+          printf '%s\n' "$CTX_RUNNER"
+          echo "=== Strategy / Matrix Context ==="
+          printf '%s\n' "$CTX_STRATEGY"
+          printf '%s\n' "$CTX_MATRIX"
+          echo "=== Gitea Context (token redacted) ==="
+          printf '%s\n' "$CTX_GITEA" | sed 's/"token":[[:space:]]*"[^"]*"/"token": "***"/g'
+
       - name: Install Node.js and Git Prerequisites (Debian)
         if: matrix.os == 'debian-12' || matrix.os == 'debian-13'
         run: apt-get update && apt-get install -y --no-install-recommends nodejs git ca-certificates
@@ -53,6 +74,24 @@ jobs:
       - name: Checkout EniWorkshop
         uses: actions/checkout@v4
 
+      - name: "Diagnostic: Workspace & Toolchain Check"
+        run: |
+          echo "=== Workspace Files ==="
+          ls -la
+          if [ -d .git ]; then
+            git status -sb || true
+            git remote -v || true
+            git log -1 --oneline || true
+          fi
+          echo "=== Available Tools ==="
+          for cmd in node git python3 cmake gcc g++ make java mvn podman docker curl; do
+            if command -v "$cmd" >/dev/null 2>&1; then
+              printf "%-10s %s\n" "$cmd:" "$(command -v "$cmd")"
+            else
+              printf "%-10s missing\n" "$cmd:"
+            fi
+          done
+
       - name: Build & Verify Runnable Distribution
         run: mvn clean verify -B
 
@@ -69,14 +108,60 @@ jobs:
           name: eniworkshop-${{ matrix.os }}
           path: dist/
 
+      - name: "Diagnostic: Post-Run Summary"
+        if: always()
+        run: |
+          echo "Job Status: ${{ job.status }}"
+          df -h . || true
+          ls -la
+
   oci-container-bundle:
     name: Build & Export OCI Image Archive
     runs-on: ubuntu-latest
     if: startsWith(gitea.server_url, 'https://gitea2.lecabellec.fr')
 
     steps:
+      - name: "Diagnostic: Environment & Runner Context"
+        env:
+          CTX_RUNNER: ${{ toJSON(runner) }}
+          CTX_STRATEGY: ${{ toJSON(strategy) }}
+          CTX_MATRIX: ${{ toJSON(matrix) }}
+          CTX_GITEA: ${{ toJSON(gitea) }}
+        run: |
+          echo "=== Host / Container OS ==="
+          cat /etc/os-release 2>/dev/null || true
+          uname -a
+          id
+          pwd
+          df -h . || true
+          echo "=== Runner Context ==="
+          printf '%s\n' "$CTX_RUNNER"
+          echo "=== Strategy / Matrix Context ==="
+          printf '%s\n' "$CTX_STRATEGY"
+          printf '%s\n' "$CTX_MATRIX"
+          echo "=== Gitea Context (token redacted) ==="
+          printf '%s\n' "$CTX_GITEA" | sed 's/"token":[[:space:]]*"[^"]*"/"token": "***"/g'
+
       - name: Checkout EniWorkshop
         uses: actions/checkout@v4
+
+      - name: "Diagnostic: Workspace & Toolchain Check"
+        run: |
+          echo "=== Workspace Files ==="
+          ls -la
+          if [ -d .git ]; then
+            git status -sb || true
+            git remote -v || true
+            git log -1 --oneline || true
+          fi
+          echo "=== Available Tools ==="
+          for cmd in node git python3 cmake gcc g++ make java mvn podman docker curl; do
+            if command -v "$cmd" >/dev/null 2>&1; then
+              printf "%-10s %s\n" "$cmd:" "$(command -v "$cmd")"
+            else
+              printf "%-10s missing\n" "$cmd:"
+            fi
+          done
 
       - name: Install Podman
         run: |
@@ -95,3 +180,10 @@ jobs:
         with:
           name: eniworkshop-oci-image
           path: eniworkshop-oci-${{ gitea.ref_name }}.tar
+
+      - name: "Diagnostic: Post-Run Summary"
+        if: always()
+        run: |
+          echo "Job Status: ${{ job.status }}"
+          df -h . || true
+          ls -la
