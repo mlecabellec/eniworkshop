@@ -1,0 +1,95 @@
+name: Multi-OS Packaging and OCI Release (Gitea)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  package-linux-matrix:
+    name: Build & Verify on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [debian-12, debian-13, fedora, archlinux]
+
+    steps:
+      - name: Install Node.js and Git Prerequisites (Debian)
+        if: matrix.os == 'debian-12' || matrix.os == 'debian-13'
+        run: apt-get update && apt-get install -y --no-install-recommends nodejs git ca-certificates
+
+      - name: Install Node.js and Git Prerequisites (Arch Linux)
+        if: matrix.os == 'archlinux'
+        run: pacman -Sy --noconfirm nodejs git ca-certificates
+
+      - name: Install Node.js and Git Prerequisites (Fedora)
+        if: matrix.os == 'fedora'
+        run: dnf install -y nodejs git ca-certificates
+
+      - name: Install Build Dependencies (Debian)
+        if: matrix.os == 'debian-12' || matrix.os == 'debian-13'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends curl wget gnupg maven tar gzip python3
+          . /etc/os-release
+          mkdir -p /etc/apt/keyrings
+          wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc >/dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb ${VERSION_CODENAME:-bookworm} main" | tee /etc/apt/sources.list.d/adoptium.list
+          apt-get update && apt-get install -y --no-install-recommends temurin-21-jdk || apt-get install -y --no-install-recommends openjdk-21-jdk
+
+      - name: Install Build Dependencies (Fedora)
+        if: matrix.os == 'fedora'
+        run: dnf install -y curl java-21-openjdk-devel maven tar gzip python3
+
+      - name: Install Build Dependencies (Arch Linux)
+        if: matrix.os == 'archlinux'
+        run: |
+          pacman -S --needed --noconfirm curl jdk21-openjdk maven tar gzip python
+          archlinux-java set java-21-openjdk || true
+
+      - name: Checkout EniWorkshop
+        uses: actions/checkout@v4
+
+      - name: Build & Verify Runnable Distribution
+        run: mvn clean verify -B
+
+      - name: Stage Release Bundle
+        run: |
+          mkdir -p dist
+          cp target/eniworkshop-0.1.0-SNAPSHOT.jar "dist/eniworkshop-${{ matrix.os }}.jar"
+          cp Containerfile LICENSE "dist/"
+          [ -f README.md ] && cp README.md "dist/" || true
+
+      - name: Upload Distribution Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: eniworkshop-${{ matrix.os }}
+          path: dist/
+
+  oci-container-bundle:
+    name: Build & Export OCI Image Archive
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout EniWorkshop
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          SUDO=""
+          [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null && SUDO="sudo"
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends podman uidmap slirp4netns fuse-overlayfs
+
+      - name: Build & Export OCI Image Tarball
+        run: |
+          podman build -t localhost/eniworkshop:${{ gitea.ref_name }} -f Containerfile .
+          podman save -o eniworkshop-oci-${{ gitea.ref_name }}.tar localhost/eniworkshop:${{ gitea.ref_name }}
+
+      - name: Upload OCI Archive Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: eniworkshop-oci-image
+          path: eniworkshop-oci-${{ gitea.ref_name }}.tar
