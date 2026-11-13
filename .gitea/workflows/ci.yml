@@ -26,6 +26,8 @@ jobs:
           uname -a
           id
           pwd
+          nproc || true
+          free -h || true
           df -h . || true
           echo "=== Runner Context ==="
           printf '%s\n' "$CTX_RUNNER"
@@ -98,6 +100,7 @@ jobs:
         if: always()
         run: |
           echo "Job Status: ${{ job.status }}"
+          free -h || true
           df -h . || true
           ls -la
 
@@ -120,6 +123,8 @@ jobs:
           uname -a
           id
           pwd
+          nproc || true
+          free -h || true
           df -h . || true
           echo "=== Runner Context ==="
           printf '%s\n' "$CTX_RUNNER"
@@ -177,6 +182,7 @@ jobs:
         if: always()
         run: |
           echo "Job Status: ${{ job.status }}"
+          free -h || true
           df -h . || true
           ls -la
 
@@ -198,6 +204,8 @@ jobs:
           uname -a
           id
           pwd
+          nproc || true
+          free -h || true
           df -h . || true
           echo "=== Runner Context ==="
           printf '%s\n' "$CTX_RUNNER"
@@ -272,5 +280,6 @@ jobs:
         if: always()
         run: |
           echo "Job Status: ${{ job.status }}"
+          free -h || true
           df -h . || true
           ls -la

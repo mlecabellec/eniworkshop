@@ -16,11 +16,23 @@ COPY eniworkshop/quasar_server ./eniworkshop_quasar_server
 
 RUN mkdir -p /workspace/quasar/build && cd /workspace/quasar/build \
     && cmake .. -DCMAKE_BUILD_TYPE=Release -DQUASAR_BUILD_EXAMPLES=OFF -DQUASAR_BUILD_TESTS=OFF \
-    && cmake --build . --target resoem resoes quasar_opcua quasar_named quasar_coretypes open62541 -j"$(nproc)"
+    && CPUS=$(nproc 2>/dev/null || echo 2) \
+    && MEM_AVAIL_KB=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0) \
+    && MEM_JOBS=$(( MEM_AVAIL_KB / 4194304 )) \
+    && if [ "$MEM_JOBS" -lt 1 ]; then MEM_JOBS=1; fi \
+    && BUILD_JOBS=$(( CPUS < MEM_JOBS ? CPUS : MEM_JOBS )) \
+    && if [ "$BUILD_JOBS" -gt 2 ]; then BUILD_JOBS=2; fi \
+    && cmake --build . --target resoem resoes quasar_opcua quasar_named quasar_coretypes open62541 -j"$BUILD_JOBS"
 
 RUN mkdir -p /workspace/eniworkshop_quasar_server/build && cd /workspace/eniworkshop_quasar_server/build \
     && cmake .. -DCMAKE_BUILD_TYPE=Release -DQUASAR_ROOT=/workspace/quasar \
-    && cmake --build . -j"$(nproc)"
+    && CPUS=$(nproc 2>/dev/null || echo 2) \
+    && MEM_AVAIL_KB=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0) \
+    && MEM_JOBS=$(( MEM_AVAIL_KB / 4194304 )) \
+    && if [ "$MEM_JOBS" -lt 1 ]; then MEM_JOBS=1; fi \
+    && BUILD_JOBS=$(( CPUS < MEM_JOBS ? CPUS : MEM_JOBS )) \
+    && if [ "$BUILD_JOBS" -gt 2 ]; then BUILD_JOBS=2; fi \
+    && cmake --build . -j"$BUILD_JOBS"
 
 FROM docker.io/library/debian:trixie-slim AS runtime
 
