@@ -10,6 +10,7 @@ jobs:
   package-linux-matrix:
     name: Build & Verify on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    if: startsWith(gitea.server_url, 'https://gitea2.lecabellec.fr')
     strategy:
       fail-fast: false
       matrix:
@@ -51,6 +52,8 @@ jobs:
 
       - name: Checkout EniWorkshop
         uses: actions/checkout@v4
+        with:
+          github-server-url: https://gitea2.lecabellec.fr
 
       - name: Build & Verify Runnable Distribution
         run: mvn clean verify -B
@@ -71,10 +74,13 @@ jobs:
   oci-container-bundle:
     name: Build & Export OCI Image Archive
     runs-on: ubuntu-latest
+    if: startsWith(gitea.server_url, 'https://gitea2.lecabellec.fr')
 
     steps:
       - name: Checkout EniWorkshop
         uses: actions/checkout@v4
+        with:
+          github-server-url: https://gitea2.lecabellec.fr
 
       - name: Install Podman
         run: |
