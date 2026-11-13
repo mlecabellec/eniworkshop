@@ -1,0 +1,83 @@
+name: Multi-OS Packaging and OCI Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  package-linux-matrix:
+    name: Build & Verify on ${{ matrix.container }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: "docker.io/library/debian:bookworm"
+            suffix: "debian-bookworm"
+          - container: "docker.io/library/debian:trixie"
+            suffix: "debian-trixie"
+          - container: "docker.io/library/fedora:latest"
+            suffix: "fedora-latest"
+
+    container:
+      image: ${{ matrix.container }}
+
+    steps:
+      - name: Install Toolchain (Debian)
+        if: "startsWith(matrix.container, 'docker.io/library/debian')"
+        run: |
+          apt-get update
+          apt-get install -y git curl wget gnupg maven
+          mkdir -p /etc/apt/keyrings
+          wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc >/dev/null
+          codename=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo bookworm)
+          echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb ${codename} main" | tee /etc/apt/sources.list.d/adoptium.list
+          apt-get update && apt-get install -y temurin-21-jdk || apt-get install -y openjdk-21-jdk
+
+      - name: Install Toolchain (Fedora)
+        if: "startsWith(matrix.container, 'docker.io/library/fedora')"
+        run: dnf install -y git curl java-21-openjdk-devel maven tar gzip
+
+      - name: Checkout EniWorkshop
+        uses: actions/checkout@v4
+
+      - name: Build & Verify Runnable Distribution
+        run: mvn clean verify -B
+
+      - name: Stage Release Bundle
+        run: |
+          mkdir -p dist
+          cp target/eniworkshop-0.1.0-SNAPSHOT.jar "dist/eniworkshop-${{ matrix.suffix }}.jar"
+          cp Containerfile LICENSE README.md "dist/" || cp Containerfile LICENSE "dist/"
+
+      - name: Upload Distribution Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eniworkshop-${{ matrix.suffix }}
+          path: dist/
+
+  oci-container-bundle:
+    name: Build & Export OCI Image Archive
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout EniWorkshop
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs
+
+      - name: Build & Export OCI Image Tarball
+        run: |
+          podman build -t localhost/eniworkshop:${{ github.ref_name }} -f Containerfile .
+          podman save -o eniworkshop-oci-${{ github.ref_name }}.tar localhost/eniworkshop:${{ github.ref_name }}
+
+      - name: Upload OCI Archive Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eniworkshop-oci-image
+          path: eniworkshop-oci-${{ github.ref_name }}.tar

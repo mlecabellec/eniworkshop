@@ -1,0 +1,130 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+    branches: ["master", "main"]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build, Static Analysis & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'src/main/frontend/package-lock.json'
+
+      - name: Run Full Verification (Checkstyle, Svelte, JUnit, PMD, CPD, JAR)
+        run: mvn clean verify -B
+
+      - name: Run Traceability Audit (CS-0010)
+        run: python3 helpers/check-traceability.py --strict
+
+      - name: CLI Help & Version Smoke Check
+        run: |
+          java -jar target/eniworkshop-0.1.0-SNAPSHOT.jar --cli --version
+          java -jar target/eniworkshop-0.1.0-SNAPSHOT.jar --cli project audit
+
+      - name: Upload Runnable JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eniworkshop-jar
+          path: target/eniworkshop-0.1.0-SNAPSHOT.jar
+
+  container-integration-test:
+    name: Podman & Testcontainers Persistence Test
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install Podman & Podman Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman podman-compose uidmap slirp4netns fuse-overlayfs
+
+      - name: Run Containerized MongoDB/GridFS Integration Tests
+        run: ./helpers/run-container-tests.sh
+
+      - name: Build OCI Container Image via Containerfile
+        run: podman build -t localhost/eniworkshop:ci -f Containerfile .
+
+      - name: Smoke Test CLI inside Container
+        run: podman run --rm localhost/eniworkshop:ci --cli --version
+
+  build-docs:
+    name: Build Documentation (mkdocs-kit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Checkout MkDocs Kit
+        uses: actions/checkout@v4
+        with:
+          repository: mlecabellec/mkdocs-kit
+          path: mkdocs-kit
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Java (PlantUML)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Documentation Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y plantuml libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libjpeg-dev libopenjp2-7-dev libffi-dev
+          pip install --upgrade pip
+          pip install "setuptools<82.0.0"
+          pip install mkdocs mkdocs-material weasyprint wireviz nwdiag bit_field
+
+      - name: Build Documentation
+        env:
+          MKDOCS_KIT_BIN: ${{ github.workspace }}/mkdocs-kit/mkdocs-kit
+        run: ./helpers/build-docs.sh build
+
+      - name: Upload Documentation Site Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eniworkshop-docs-site
+          path: doc/site/
+
+      - name: Upload PDF Manual Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eniworkshop-docs-pdf
+          path: doc/documentation.pdf

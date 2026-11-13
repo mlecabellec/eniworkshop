@@ -1,0 +1,54 @@
+# Podman Compose / OCI stack for EniWorkshop + MongoDB (+ optional Quasar companion)
+services:
+  mongodb:
+    image: docker.io/library/mongo:7.0.14
+    container_name: eniworkshop-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - eniworkshop-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - eniworkshop-net
+
+  eniworkshop:
+    build:
+      context: ..
+      dockerfile: Containerfile
+    image: localhost/eniworkshop:latest
+    container_name: eniworkshop-app
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      ENIWORKSHOP_MONGO_URI: "mongodb://mongodb:27017/eniworkshop"
+      QUASAR_OPCUA_ENDPOINT: "opc.tcp://quasar:4840"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - eniworkshop-net
+
+  quasar:
+    profiles:
+      - quasar
+    build:
+      context: ../..
+      dockerfile: eniworkshop/helpers/quasar.Containerfile
+    image: localhost/eniworkshop-quasar:latest
+    container_name: eniworkshop-quasar
+    ports:
+      - "4840:4840"
+    networks:
+      - eniworkshop-net
+
+volumes:
+  eniworkshop-mongo-data:
+
+networks:
+  eniworkshop-net:
+    driver: bridge

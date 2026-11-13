@@ -1,0 +1,15 @@
+ENI Workshop (eniworkshop)
+Copyright 2026 fr.lecabellec / ENI Workshop Contributors
+
+This product is licensed under the Apache License, Version 2.0.
+
+Third-Party Dependencies License Summary (Apache 2.0 Compatible):
+- Spring Boot, Spring Framework, Spring Data MongoDB, Spring Security, Spring Kafka, Spring WebSocket: Apache-2.0
+- Picocli (info.picocli): Apache-2.0
+- SpringDoc OpenAPI (org.springdoc): Apache-2.0
+- PlantUML ASL Edition (net.sourceforge.plantuml:plantuml-asl): Apache-2.0
+- Eclipse Milo OPC-UA SDK (org.eclipse.milo): Eclipse Public License 2.0 (EPL-2.0)
+- JeroMQ (org.zeromq:jeromq): Mozilla Public License 2.0 (MPL-2.0)
+- Svelte 5, Vite, TypeScript, dockview-core, @xyflow/svelte, cytoscape, tabulator-tables, papaparse, plantuml-encoder, @stomp/stompjs, lucide-svelte: MIT
+- D3 (d3-scale): BSD-3-Clause
+- Quasar C++ integration helper (quasar_server/): integrates with Quasar (resoem/resoes/opcua).

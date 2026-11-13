@@ -1,0 +1,10 @@
+.git/
+target/
+src/main/frontend/node_modules/
+src/main/frontend/dist/
+doc/site/
+doc/documentation.pdf
+doc/man/
+quasar_server/build/
+*.log
+tmp/

@@ -1,0 +1,38 @@
+# Maven build artifacts
+target/
+.mvn/
+*.class
+
+# Frontend Maven Plugin artifacts
+src/main/frontend/node/
+src/main/frontend/node_modules/
+src/main/frontend/dist/
+src/main/frontend/dist-ssr/
+
+# Quasar C++ helper build artifacts
+quasar_server/build/
+quasar_server/cmake-build-*/
+
+# Transient application/system artifacts
+cur/
+new/
+tmp/
+
+# Logs
+*.log
+
+# IDEs and OS files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# MkDocs Kit build outputs
+doc/site/
+doc/man/
+doc/documentation.pdf
+
+# Cache and local tool directories
+.cache/
+.tools/

@@ -1,0 +1,57 @@
+site_name: ENI Workshop Documentation
+use_directory_urls: false
+plugins:
+  - search
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+nav:
+  - Welcome: index.md
+  - Topics Index: topics_index.md
+  - Project Management:
+      - TODO Board: TODO.md
+      - Project Governance: project/README.md
+      - Feature Registry: project/features/README.md
+      - Tasks Index: project/tasks/README.md
+      - Milestones: project/milestones/README.md
+      - Reviews: project/reviews/README.md
+  - Project Rules:
+      - Rules Index: architecture/rules_index.md
+      - "CS-0010 Quality Standards": architecture/CS-0010.md
+      - "CS-0020 AI Agent & Submission Rules": architecture/CS-0020.md
+      - "CS-0030 Java Coding Standards": architecture/CS-0030.md
+      - "CS-0060 Deterministic Logic Standards": architecture/CS-0060.md
+      - "CS-0090 Javadoc & Traceability": architecture/CS-0090.md
+      - "CS-0100 Comprehensive Testing": architecture/CS-0100.md
+  - Architecture:
+      - Architecture Index: architecture/architecture_index.md
+      - Quasar (resoem/resoes) Integration: architecture/Quasar-Integration.md
+      - Svelte 5 Workbench Frontend: architecture/Svelte-Frontend.md
+      - Diagram Showcase: diagrams.md
+  - EtherCAT Specifications:
+      - "ETG.1000 / ETG.2100 ENI Reference": specifications/ethercat_eni_reference.md
+  - Components Register:
+      - Components Index: architecture/components_index.md
+  - Requirements & Licensing:
+      - Requirements & Tasks: misc/requirements.md
+      - Apache 2.0 License Audit: misc/licenses.md
+  - Man Pages:
+      - "eniworkshop(1)": man/eniworkshop.1.md

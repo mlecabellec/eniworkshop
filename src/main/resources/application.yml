@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: eniworkshop
+  data:
+    mongodb:
+      uri: ${ENIWORKSHOP_MONGO_URI:mongodb://localhost:27017/eniworkshop?serverSelectionTimeoutMS=500&connectTimeoutMS=500}
+      auto-index-creation: ${ENIWORKSHOP_MONGO_AUTO_INDEX:false}
+  servlet:
+    multipart:
+      max-file-size: 64MB
+      max-request-size: 64MB
+  kafka:
+    bootstrap-servers: ${ENIWORKSHOP_KAFKA_SERVERS:localhost:9092}
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+eniworkshop:
+  messaging:
+    kafka:
+      enabled: ${ENIWORKSHOP_KAFKA_ENABLED:false}
+      topic: eniworkshop-events
+  quasar:
+    opcua-url: ${QUASAR_OPCUA_ENDPOINT:opc.tcp://localhost:4840}
+    namespace-idx: ${QUASAR_NAMESPACE_IDX:1}
+    master-path: ${QUASAR_MASTER_PATH:EthercatMasterService}
+    zmq-endpoint: ${QUASAR_ZMQ_ENDPOINT:tcp://localhost:5556}
+    auto-connect: ${QUASAR_AUTO_CONNECT:false}
+
+logging:
+  level:
+    root: INFO
+    fr.lecabellec.eniworkshop: DEBUG
